@@ -1,130 +1,121 @@
-public class Main{
-
-    //  1. Негізгі интерфейс
-    interface Beverage {
-        String getDescription();
-        double getCost();
+package Main;
+class TV {
+    public void on() {
+        System.out.println("Телевизор қосылды");
     }
-    //  2. Нақты сусындар
-    static class Espresso implements Beverage {
-        public String getDescription() {
-            return "Espresso";
-        }
-        public double getCost() {
-            return 500;
-        }
-    }
-    static class Tea implements Beverage {
-        public String getDescription() {
-            return "Tea";
-        }
-        public double getCost() {
-            return 300;
-        }
-    }
-    static class Latte implements Beverage {
-        public String getDescription() {
-            return "Latte";
-        }
-        public double getCost() {
-            return 600;
-        }
-    }
-    static class Mocha implements Beverage {
-        public String getDescription() {
-            return "Mocha";
-        }
-        public double getCost() {
-            return 650;
-        }
+    public void off() {
+        System.out.println("Телевизор өшірілді");
     }
 
-    //  3. Абстрактты декоратор
-    static abstract class BeverageDecorator implements Beverage {
-        protected Beverage beverage;
-        public BeverageDecorator(Beverage beverage) {
-            this.beverage = beverage;
-        }
-        public String getDescription() {
-            return beverage.getDescription();
-        }
-        public double getCost() {
-            return beverage.getCost();
-        }
+    public void setInputChannel(String source) {
+        System.out.println("Телевизор: кіріс '" + source + "' таңдалды");
     }
+}
+class AudioSystem {
+    public void on() {
+        System.out.println("Аудиожүйе қосылды");
+    }
+    public void off() {
+        System.out.println("Аудиожүйе өшірілді");
+    }
+    public void setVolume(int level) {
+        System.out.println("Аудиожүйе: дыбыс деңгейі " + level + " болып орнатылды");
+    }
+}
 
-    //  4. Нақты декораторлар
-    static class Milk extends BeverageDecorator {
-        public Milk(Beverage beverage) {
-            super(beverage);
-        }
-        public String getDescription() {
-            return beverage.getDescription() + ", Milk";
-        }
-        public double getCost() {
-            return beverage.getCost() + 100;
-        }
+class DVDPlayer {
+    public void on() {
+        System.out.println("DVD ойнатқыш қосылды");
     }
-    static class Sugar extends BeverageDecorator {
-        public Sugar(Beverage beverage) {
-            super(beverage);
-        }
-        public String getDescription() {
-            return beverage.getDescription() + ", Sugar";
-        }
-        public double getCost() {
-            return beverage.getCost() + 50;
-        }
+    public void off() {
+        System.out.println("DVD ойнатқыш өшірілді");
     }
-    static class WhippedCream extends BeverageDecorator {
-        public WhippedCream(Beverage beverage) {
-            super(beverage);
-        }
-        public String getDescription() {
-            return beverage.getDescription() + ", Whipped Cream";
-        }
-        public double getCost() {
-            return beverage.getCost() + 150;
-        }
+    public void play() {
+        System.out.println("DVD: ойнату басталды");
     }
-    static class Caramel extends BeverageDecorator {
-        public Caramel(Beverage beverage) {
-            super(beverage);
-        }
-        public String getDescription() {
-            return beverage.getDescription() + ", Caramel";
-        }
-        public double getCost() {
-            return beverage.getCost() + 120;
-        }
+    public void pause() {
+        System.out.println("DVD: кідіртілді");
     }
-    static class Vanilla extends BeverageDecorator {
-        public Vanilla(Beverage beverage) {
-            super(beverage);
-        }
-        public String getDescription() {
-            return beverage.getDescription() + ", Vanilla";
-        }
-        public double getCost() {
-            return beverage.getCost() + 130;
-        }
+    public void stop() {
+        System.out.println("DVD: тоқтатылды");
     }
+}
+class GameConsole {
+    public void on() {
+        System.out.println("Ойын консолі қосылды");
+    }
+    public void off() {
+        System.out.println("Ойын консолі өшірілді");
+    }
+    public void startGame(String game) {
+        System.out.println("Ойын '" + game + "' консольде іске қосылды");
+    }
+}
+class HomeTheaterFacade {
+    private TV tv;
+    private AudioSystem audio;
+    private DVDPlayer dvd;
+    private GameConsole console;
+    public HomeTheaterFacade(TV tv, AudioSystem audio, DVDPlayer dvd, GameConsole console) {
+        this.tv = tv;
+        this.audio = audio;
+        this.dvd = dvd;
+        this.console = console;
+    }
+    public void watchMovie() {
+        System.out.println("\nФИЛЬМ КӨРУ БАСТАЛДЫ");
+        tv.on();
+        audio.on();
+        audio.setVolume(15);
+        tv.setInputChannel("HDMI 1 (DVD)");
+        dvd.on();
+        dvd.play();
+    }
+    public void listenToMusic() {
+        System.out.println("\nМУЗЫКА ТЫҢДАУ БАСТАЛДЫ");
+        tv.on();
+        audio.on();
+        audio.setVolume(20);
+        tv.setInputChannel("AUX");
+        System.out.println("Музыка аудиожүйе арқылы ойнатылуда...");
+    }
+    public void playGame(String game) {
+        System.out.println("\nОЙЫН БАСТАЛДЫ");
+        tv.on();
+        console.on();
+        tv.setInputChannel("HDMI 2 (Console)");
+        console.startGame(game);
+    }
+    public void endSession() {
+        System.out.println("\nЖҮЙЕ ӨШІРІЛУДЕ...");
+        dvd.stop();
+        dvd.off();
+        console.off();
+        audio.off();
+        tv.off();
+    }
+    public void setVolume(int level) {
+        audio.setVolume(level);
+    }
+}
 
-    //  5. Клиенттік код
+public class Main {
     public static void main(String[] args) {
-        Beverage espresso = new Espresso();
-        System.out.println(espresso.getDescription() + " → " + espresso.getCost() + " ₸");
-
-        Beverage espressoWithMilkAndSugar = new Sugar(new Milk(new Espresso()));
-        System.out.println(espressoWithMilkAndSugar.getDescription() + " → " + espressoWithMilkAndSugar.getCost() + " ₸");
-
-        Beverage latteWithCaramelAndCream = new WhippedCream(new Caramel(new Latte()));
-        System.out.println(latteWithCaramelAndCream.getDescription() + " → " + latteWithCaramelAndCream.getCost() + " ₸");
-
-        Beverage mochaDeluxe = new WhippedCream(new Milk(new Vanilla(new Mocha())));
-        System.out.println(mochaDeluxe.getDescription() + " → " + mochaDeluxe.getCost() + " ₸");
-
-        Beverage teaCombo = new Sugar(new Milk(new Tea()));
-        System.out.println(teaCombo.getDescription() + " → " + teaCombo.getCost() + " ₸");
+        // Құрылғыларды құру
+        TV tv = new TV();
+        AudioSystem audio = new AudioSystem();
+        DVDPlayer dvd = new DVDPlayer();
+        GameConsole console = new GameConsole();
+        // Фасадты құру
+        HomeTheaterFacade homeTheater = new HomeTheaterFacade(tv, audio, dvd, console);
+        // 1. Фильм көру
+        homeTheater.watchMovie();
+        homeTheater.setVolume(18);
+        homeTheater.endSession();
+        // 2. Ойын ойнау
+        homeTheater.playGame("FIFA 2025");
+        // 3. Музыка тыңдау
+        homeTheater.listenToMusic();
+        homeTheater.endSession();
     }
 }
