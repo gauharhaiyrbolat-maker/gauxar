@@ -1,121 +1,245 @@
 package Main;
-class TV {
-    public void on() {
-        System.out.println("Телевизор қосылды");
-    }
-    public void off() {
-        System.out.println("Телевизор өшірілді");
-    }
 
-    public void setInputChannel(String source) {
-        System.out.println("Телевизор: кіріс '" + source + "' таңдалды");
-    }
-}
-class AudioSystem {
-    public void on() {
-        System.out.println("Аудиожүйе қосылды");
-    }
-    public void off() {
-        System.out.println("Аудиожүйе өшірілді");
-    }
-    public void setVolume(int level) {
-        System.out.println("Аудиожүйе: дыбыс деңгейі " + level + " болып орнатылды");
-    }
+
+
+
+
+// ITicketVendingMachineState
+interface IState {
+    void selT(TVM machine); // SelectTicket
+    void insM(TVM machine, double amount); // InsertMoney
+    void disT(TVM machine); // DispenseTicket
+    void canT(TVM machine); // CancelTransaction
 }
 
-class DVDPlayer {
-    public void on() {
-        System.out.println("DVD ойнатқыш қосылды");
+//  TicketVendingMachine
+class TVM {
+    // CurrentState
+    private IState cS;
+    // CurrentBalance
+    private double cB = 0.0;
+    // TicketPrice
+    private final double tP = 5.00;
+
+    // Ссылки на конкретные состояния
+    public final IdleState Idle;
+    public final WaitMState WaitM; // WaitingForMoneyState
+    public final MoneyRState MoneyR; // MoneyReceivedState
+    public final DispTState DispT; // TicketDispensedState
+    public final CanTState CanT; // TransactionCanceledState
+
+    public TVM() {
+        // Инициализация состояний
+        Idle = new IdleState(this);
+        WaitM = new WaitMState(this);
+        MoneyR = new MoneyRState(this);
+        DispT = new DispTState(this);
+        CanT = new CanTState(this);
+
+        // Установка начального состояния
+        cS = Idle;
+        System.out.println("Автомат инициализирован. Начальное состояние: " + cS.getClass().getSimpleName());
     }
-    public void off() {
-        System.out.println("DVD ойнатқыш өшірілді");
+
+    // SetState
+    public void setS(IState newState) {
+        cS = newState;
+        System.out.println("--> Изменение состояния на: " + cS.getClass().getSimpleName());
     }
-    public void play() {
-        System.out.println("DVD: ойнату басталды");
+
+    // AddMoney
+    public void addM(double amount) {
+        cB += amount;
     }
-    public void pause() {
-        System.out.println("DVD: кідіртілді");
+
+    // ResetBalance (Сбросить баланс)
+    public void resB() {
+        cB = 0.0;
     }
-    public void stop() {
-        System.out.println("DVD: тоқтатылды");
+
+    // GetCurrentBalance (Получить текущий баланс)
+    public double getCB() {
+        return cB;
+    }
+
+    // GetTicketPrice (Получить цену билета)
+    public double getTP() {
+        return tP;
+    }
+
+    // Методы-триггеры (делегирование)
+    public void selT() { cS.selT(this); }
+    public void insM(double amount) { cS.insM(this, amount); }
+    public void disT() { cS.disT(this); }
+    public void canT() { cS.canT(this); }
+}
+
+
+
+//  Состояние ожидания
+class IdleState implements IState {
+    private final TVM machine;
+
+    public IdleState(TVM machine) {
+        this.machine = machine;
+    }
+
+    @Override
+    public void selT(TVM machine) {
+        System.out.println("Билет выбран. Внесите средства.");
+        machine.setS(machine.WaitM);
+    }
+
+    @Override
+    public void insM(TVM machine, double amount) {
+        System.out.println("Сначала выберите билет!");
+    }
+
+    @Override
+    public void disT(TVM machine) { System.out.println("Ошибка: Невозможно выдать билет."); }
+    @Override
+    public void canT(TVM machine) { System.out.println("Нет активной транзакции."); }
+}
+
+
+// WaitingForMoneyState
+class WaitMState implements IState {
+    private final TVM machine;
+
+    public WaitMState(TVM machine) {
+        this.machine = machine;
+    }
+
+    @Override
+    public void selT(TVM machine) {
+        System.out.println("Билет уже выбран.");
+    }
+
+    @Override
+    public void insM(TVM machine, double amount) {
+        machine.addM(amount);
+        System.out.printf("Внесено: %.2f. Цена: %.2f%n", machine.getCB(), machine.getTP());
+
+        if (machine.getCB() >= machine.getTP()) {
+            machine.setS(machine.MoneyR);
+        }
+    }
+
+    @Override
+    public void canT(TVM machine) {
+        System.out.printf("Отмена: Возврат %.2f.%n", machine.getCB());
+        machine.resB();
+        machine.setS(machine.CanT);
+    }
+
+    @Override
+    public void disT(TVM machine) { System.out.println("Ошибка: Недостаточно средств."); }
+}
+
+
+
+
+
+
+//  MoneyReceivedState
+class MoneyRState implements IState {
+    private final TVM machine;
+
+    public MoneyRState(TVM machine) {
+        this.machine = machine;
+    }
+
+    @Override
+    public void selT(TVM machine) { System.out.println("Билет выбран. Выполняется выдача."); }
+
+    @Override
+    public void insM(TVM machine, double amount) {
+        machine.addM(amount);
+        System.out.printf("Излишняя сумма принята. Новый баланс: %.2f.%n", machine.getCB());
+    }
+
+    @Override
+    public void disT(TVM machine) {
+        double change = machine.getCB() - machine.getTP();
+        System.out.printf("Выдан билет! Сдача: %.2f%n", change);
+        machine.resB();
+        machine.setS(machine.DispT);
+    }
+
+    @Override
+    public void canT(TVM machine) {
+        System.out.printf("Отмена: Возврат %.2f.%n", machine.getCB());
+        machine.resB();
+        machine.setS(machine.CanT);
     }
 }
-class GameConsole {
-    public void on() {
-        System.out.println("Ойын консолі қосылды");
+
+
+
+//  TicketDispensedState
+class DispTState implements IState {
+    private final TVM machine;
+
+    public DispTState(TVM machine) {
+        this.machine = machine;
     }
-    public void off() {
-        System.out.println("Ойын консолі өшірілді");
-    }
-    public void startGame(String game) {
-        System.out.println("Ойын '" + game + "' консольде іске қосылды");
-    }
+    // После выдачи билет автомат автоматически переходит в Idle для следующего клиента.
+    @Override
+    public void selT(TVM machine) { machine.setS(machine.Idle); machine.selT(); }
+    @Override
+    public void insM(TVM machine, double amount) { machine.setS(machine.Idle); machine.insM(amount); }
+    @Override
+    public void disT(TVM machine) { System.out.println("Ошибка: Билет уже выдан."); }
+    @Override
+    public void canT(TVM machine) { System.out.println("Ошибка: Транзакция завершена."); }
 }
-class HomeTheaterFacade {
-    private TV tv;
-    private AudioSystem audio;
-    private DVDPlayer dvd;
-    private GameConsole console;
-    public HomeTheaterFacade(TV tv, AudioSystem audio, DVDPlayer dvd, GameConsole console) {
-        this.tv = tv;
-        this.audio = audio;
-        this.dvd = dvd;
-        this.console = console;
+
+//  TransactionCanceledState
+class CanTState implements IState {
+    private final TVM machine;
+
+    public CanTState(TVM machine) {
+        this.machine = machine;
     }
-    public void watchMovie() {
-        System.out.println("\nФИЛЬМ КӨРУ БАСТАЛДЫ");
-        tv.on();
-        audio.on();
-        audio.setVolume(15);
-        tv.setInputChannel("HDMI 1 (DVD)");
-        dvd.on();
-        dvd.play();
-    }
-    public void listenToMusic() {
-        System.out.println("\nМУЗЫКА ТЫҢДАУ БАСТАЛДЫ");
-        tv.on();
-        audio.on();
-        audio.setVolume(20);
-        tv.setInputChannel("AUX");
-        System.out.println("Музыка аудиожүйе арқылы ойнатылуда...");
-    }
-    public void playGame(String game) {
-        System.out.println("\nОЙЫН БАСТАЛДЫ");
-        tv.on();
-        console.on();
-        tv.setInputChannel("HDMI 2 (Console)");
-        console.startGame(game);
-    }
-    public void endSession() {
-        System.out.println("\nЖҮЙЕ ӨШІРІЛУДЕ...");
-        dvd.stop();
-        dvd.off();
-        console.off();
-        audio.off();
-        tv.off();
-    }
-    public void setVolume(int level) {
-        audio.setVolume(level);
-    }
+    // После отмены транзакции автомат автоматически переходит в Idle.
+    @Override
+    public void selT(TVM machine) { machine.setS(machine.Idle); machine.selT(); }
+    @Override
+    public void insM(TVM machine, double amount) { machine.setS(machine.Idle); machine.insM(amount); }
+    @Override
+    public void disT(TVM machine) { System.out.println("Ошибка: Транзакция отменена."); }
+    @Override
+    public void canT(TVM machine) { System.out.println("Ошибка: Транзакция уже отменена."); }
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 public class Main {
     public static void main(String[] args) {
-        // Құрылғыларды құру
-        TV tv = new TV();
-        AudioSystem audio = new AudioSystem();
-        DVDPlayer dvd = new DVDPlayer();
-        GameConsole console = new GameConsole();
-        // Фасадты құру
-        HomeTheaterFacade homeTheater = new HomeTheaterFacade(tv, audio, dvd, console);
-        // 1. Фильм көру
-        homeTheater.watchMovie();
-        homeTheater.setVolume(18);
-        homeTheater.endSession();
-        // 2. Ойын ойнау
-        homeTheater.playGame("FIFA 2025");
-        // 3. Музыка тыңдау
-        homeTheater.listenToMusic();
-        homeTheater.endSession();
+        TVM machine = new TVM(); // [Idle]
+
+        System.out.println("\n--- Сценарий 1: Успешная покупка (5.00) ---");
+        machine.selT();           // [WaitM]
+        machine.insM(3.00);       // [WaitM]
+        machine.insM(2.50);       // [MoneyR] (Баланс 5.50)
+        machine.disT();           // [DispT] (Сдача 0.50)
+        machine.selT();           // [DispT] -> [Idle] -> [WaitM]
+
+        System.out.println("\n--- Сценарий 2: Отмена транзакции ---");
+        machine.insM(4.50);       // [WaitM] (Баланс 4.50)
+        machine.canT();           // [CanT] (Возврат 4.50)
+        machine.insM(10.00);      // [CanT] -> [Idle] -> [WaitM] (Баланс 10.00)
+        machine.disT();           // [MoneyR] -> [DispT]
     }
 }
